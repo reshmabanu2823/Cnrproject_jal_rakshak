@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JalRakshak – Smart Water Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&family=Sora:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>JalRakshak</h1>
+    <p class="tag">Know where every litre goes.</p>
+  </div>
+  <div class="top-actions">
+    <span id="asOf" class="muted"></span>
+    <button id="btnSettings" class="ghost">Household settings</button>
+    <button id="btnReseed" class="ghost">Reset demo data</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero card">
+    <div class="tank-wrap">
+      <div class="tank" id="tank" role="img" aria-label="Today's water use against daily budget">
+        <div class="fill" id="tankFill">
+          <svg class="wave" viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 6 Q15 0 30 6 T60 6 T90 6 T120 6 V12 H0Z" />
+          </svg>
+        </div>
+        <div class="budget-line" id="budgetLine"><span>Daily budget</span></div>
+      </div>
+      <div class="tank-read">
+        <div class="big" id="todayL">–</div>
+        <div class="muted">litres used today</div>
+        <div class="budget" id="budgetTxt">–</div>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><span class="k" id="kAvg">–</span><span class="l">7-day daily average (L)</span></div>
+      <div class="kpi"><span class="k" id="kCap">–</span><span class="l">litres per person today</span></div>
+      <div class="kpi warn"><span class="k" id="kLeak">–</span><span class="l">litres/day lost to suspected leaks</span></div>
+      <div class="kpi"><span class="k" id="kAlerts">–</span><span class="l">active alerts</span></div>
+    </div>
+  </section>
+
+  <section class="card span2">
+    <h2>Daily usage, last 14 days</h2>
+    <div class="chart"><canvas id="chDaily"></canvas></div>
+  </section>
+
+  <section class="card">
+    <h2>Where the water goes (7 days)</h2>
+    <div class="chart sm"><canvas id="chZones"></canvas></div>
+    <ul id="zoneList" class="zones"></ul>
+  </section>
+
+  <section class="card span2">
+    <h2>Today by hour</h2>
+    <div class="chart sm"><canvas id="chHourly"></canvas></div>
+  </section>
+
+  <section class="card">
+    <h2>Log a reading</h2>
+    <form id="readingForm" class="form" onsubmit="return false">
+      <label>Zone <select id="fZone"></select></label>
+      <label>Litres <input id="fLiters" type="number" min="0" step="0.1" value="10"></label>
+      <button id="btnAdd" class="primary" type="button">Add reading</button>
+      <p class="muted" id="fMsg" aria-live="polite"></p>
+    </form>
+    <p class="muted small">In a real deployment, readings arrive from smart meters via <code>POST /api/readings</code>.</p>
+  </section>
+
+  <section class="card span2">
+    <h2>Alerts</h2>
+    <div id="alerts" class="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>What to do about it</h2>
+    <div id="recs" class="list"></div>
+  </section>
+</main>
+
+<dialog id="dlgSettings">
+  <form method="dialog" class="form">
+    <h2>Household settings</h2>
+    <label>People in household <input id="sHouse" type="number" min="1" max="100"></label>
+    <label>Target litres per person per day <input id="sLpcd" type="number" min="1" max="1000"></label>
+    <p class="muted small">135 L is the BIS benchmark for urban domestic use.</p>
+    <div class="row">
+      <button value="cancel" class="ghost">Cancel</button>
+      <button id="btnSaveSettings" value="save" class="primary">Save settings</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

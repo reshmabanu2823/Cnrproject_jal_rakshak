@@ -1,0 +1,76 @@
+:root{
+  --ink:#0c2d3a; --deep:#0f4c5c; --water:#2a9db5; --foam:#e3f2f4; --paper:#f4f9fa;
+  --alert:#e4572e; --amber:#e9a23b; --ok:#2f9e6e; --line:#d5e6ea;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:1rem}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 "Nunito Sans",system-ui,sans-serif}
+h1,h2,.big,.k{font-family:Sora,system-ui,sans-serif}
+h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:-.02em;color:var(--deep)}
+h2{margin:0 0 .75rem;font-size:1.05rem;font-weight:700}
+.tag{margin:.1rem 0 0;color:var(--water);font-weight:600}
+.muted{color:#55737d}.small{font-size:.85rem}
+code{background:var(--foam);padding:.05rem .35rem;border-radius:5px;font-size:.85em}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
+  max-width:1200px;margin:0 auto;padding:1.5rem 1.25rem .5rem}
+.top-actions{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+
+main{max-width:1200px;margin:0 auto;padding:1rem 1.25rem 3rem;display:grid;
+  grid-template-columns:repeat(3,1fr);gap:1.1rem}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:1.1rem 1.2rem;min-width:0}
+.span2{grid-column:span 2}
+.hero{grid-column:1/-1;display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:2rem;align-items:center}
+
+/* The tank: today's use against the daily budget */
+.tank-wrap{display:flex;gap:1.4rem;align-items:center}
+.tank{position:relative;width:110px;height:210px;border:3px solid var(--deep);border-radius:16px 16px 22px 22px;
+  background:var(--foam);overflow:hidden;flex:none}
+.fill{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--water);transition:height .9s ease,background .4s}
+.fill.over{background:var(--alert)}
+.wave{position:absolute;top:-11px;left:0;width:100%;height:12px;fill:var(--water)}
+.fill.over .wave{fill:var(--alert)}
+.budget-line{position:absolute;left:0;right:0;border-top:2px dashed var(--ink);opacity:.75}
+.budget-line span{position:absolute;right:4px;top:2px;font-size:.65rem;font-weight:700;background:#ffffffcc;padding:0 3px;border-radius:3px}
+.big{font-size:3rem;font-weight:800;line-height:1;color:var(--deep)}
+.budget{margin-top:.6rem;font-weight:700}
+.budget.over{color:var(--alert)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem}
+.kpi{background:var(--foam);border-radius:12px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.2rem}
+.kpi .k{font-size:1.7rem;font-weight:700}
+.kpi .l{font-size:.82rem;color:#3e5f69}
+.kpi.warn .k{color:var(--alert)}
+
+.chart{position:relative;height:260px}.chart.sm{height:210px}
+
+.zones{list-style:none;padding:0;margin:.8rem 0 0;display:grid;gap:.35rem;font-size:.92rem}
+.zones li{display:flex;justify-content:space-between;gap:.5rem}
+.zones .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.45rem}
+
+.list{display:grid;gap:.65rem}
+.item{border:1px solid var(--line);border-radius:12px;padding:.75rem .9rem;background:#fff}
+.item.high{border-color:var(--alert);background:#fff6f3}
+.item.medium{border-color:var(--amber);background:#fffaf0}
+.item h3{margin:0 0 .15rem;font-size:.98rem;font-family:Sora,sans-serif}
+.item p{margin:0;font-size:.9rem;color:#3e5f69}
+.item .save{margin-top:.35rem;font-weight:700;color:var(--ok);font-size:.88rem}
+.empty{color:#55737d;padding:.5rem 0}
+
+.form{display:grid;gap:.7rem}
+.form label{display:grid;gap:.25rem;font-weight:600;font-size:.9rem}
+select,input{font:inherit;padding:.5rem .6rem;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+button{font:inherit;font-weight:700;border-radius:10px;padding:.55rem 1rem;cursor:pointer;border:1px solid transparent}
+.primary{background:var(--deep);color:#fff}.primary:hover{background:var(--ink)}
+.ghost{background:#fff;border-color:var(--line);color:var(--deep)}.ghost:hover{background:var(--foam)}
+:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+dialog{border:none;border-radius:var(--radius);padding:1.3rem;min-width:min(380px,92vw);box-shadow:0 10px 40px #0c2d3a40}
+dialog::backdrop{background:#0c2d3a66}
+.row{display:flex;gap:.6rem;justify-content:flex-end}
+
+@media(max-width:900px){
+  main{grid-template-columns:1fr}.span2{grid-column:auto}
+  .hero{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}
+}
+@media(prefers-reduced-motion:reduce){.fill{transition:none}}
