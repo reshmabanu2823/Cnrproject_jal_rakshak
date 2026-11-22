@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from statistics import mean, pstdev
 
+from config import config
 from database import get_settings
 
 NIGHT_HOURS = (1, 2, 3, 4)       # a household is normally idle here
@@ -38,7 +39,7 @@ def _hourly(conn, since: datetime):
 
 def daily_totals(conn, days: int = 14):
     ref = reference_time(conn)
-    start = (ref - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0)
+    start = (ref - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
     rows = conn.execute(
         "SELECT substr(ts,1,10) AS d, SUM(liters) AS l FROM readings WHERE ts >= ? GROUP BY d ORDER BY d",
         (start.isoformat(timespec="seconds"),),
@@ -63,7 +64,7 @@ def hourly_today(conn):
 
 def zone_breakdown(conn, days: int = 7):
     ref = reference_time(conn)
-    start = (ref - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0)
+    start = (ref - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
     rows = conn.execute(
         """SELECT z.id, z.name, z.icon, COALESCE(SUM(r.liters),0) AS l
            FROM zones z LEFT JOIN readings r ON r.zone_id = z.id AND r.ts >= ?
@@ -124,6 +125,7 @@ def detect_anomalies(conn):
         if leaky_nights:
             rate = mean(night_avgs)
             alerts.append({
+                "fingerprint": f"leak:{zone}",  # one alert per zone while the leak persists
                 "type": "leak",
                 "severity": "high" if len(leaky_nights) >= 2 else "medium",
                 "zone": zone,
@@ -156,6 +158,7 @@ def detect_anomalies(conn):
             extra = sum(v - mu for _, v, mu, _ in spikes)
             first, last = spikes[0][0], spikes[-1][0]
             alerts.append({
+                "fingerprint": f"spike:{zone}:{first:%Y-%m-%dT%H}",
                 "type": "spike",
                 "severity": "high" if extra > 150 else "medium",
                 "zone": zone,
@@ -172,6 +175,7 @@ def detect_anomalies(conn):
         if d["liters"] > budget * 1.1:
             over = d["liters"] - budget
             alerts.append({
+                "fingerprint": f"budget:{d['date']}",
                 "type": "budget",
                 "severity": "medium",
                 "zone": None,
@@ -181,9 +185,43 @@ def detect_anomalies(conn):
                 "dates": [d["date"]],
             })
 
+    alerts.extend(offline_devices(conn))
+
     order = {"high": 0, "medium": 1, "low": 2}
     alerts.sort(key=lambda a: order[a["severity"]])
     return alerts
+
+
+def offline_devices(conn, now: datetime | None = None):
+    """Sensors that stopped reporting. Uses wall-clock time, not the data's reference time,
+    because a silent sensor is exactly the case where no new data arrives."""
+    now = now or datetime.now()
+    limit = timedelta(minutes=config.device_offline_minutes)
+    out = []
+    rows = conn.execute(
+        """SELECT d.id, d.name, d.last_seen, z.name AS zone FROM devices d
+           JOIN zones z ON z.id = d.zone_id WHERE d.active = 1"""
+    ).fetchall()
+    for d in rows:
+        if d["last_seen"] is None:
+            continue  # registered but never installed: not an outage
+        silent = now - datetime.fromisoformat(d["last_seen"])
+        if silent > limit:
+            mins = int(silent.total_seconds() // 60)
+            out.append({
+                "fingerprint": f"offline:{d['id']}:{d['last_seen']}",
+                "type": "offline",
+                "severity": "high" if silent > timedelta(hours=6) else "medium",
+                "zone": d["zone"],
+                "title": f"Sensor '{d['name']}' is offline",
+                "detail": (f"No data from the {d['zone']} sensor for {mins // 60} h {mins % 60} min "
+                           f"(last seen {d['last_seen']}). Leaks in this zone cannot be detected until it reconnects. "
+                           "Check power and Wi-Fi."),
+                "est_wasted_l_per_day": 0,
+                "device_id": d["id"],
+                "dates": [d["last_seen"][:10]],
+            })
+    return out
 
 
 # ───────────────────────── recommendations ─────────────────────────
@@ -209,6 +247,13 @@ def recommendations(conn):
                 "title": f"Avoid running water unattended in the {a['zone']}",
                 "action": "Use a timer or auto shut-off nozzle so a hose or tap cannot stay open by mistake.",
                 "saves_l_per_month": round(a.get("extra_liters", 0)),
+            })
+        elif a["type"] == "offline":
+            recs.append({
+                "priority": "high",
+                "title": f"Reconnect the {a['zone']} flow sensor",
+                "action": "Check the sensor's power supply and Wi-Fi. Until it reports again, leaks in this zone go unnoticed.",
+                "saves_l_per_month": 0,
             })
 
     if share.get("Bathroom", 0) > 35:

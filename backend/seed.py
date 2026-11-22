@@ -8,7 +8,7 @@ import math
 import random
 from datetime import datetime, timedelta
 
-from database import get_conn
+from database import connect
 
 # hourly litres (typical household, 4 people) by hour-of-day: (base weights per zone)
 PROFILE = {
@@ -23,9 +23,10 @@ PROFILE = {
 
 def seed(days: int = 30, reset: bool = True) -> int:
     random.seed(42)
-    with get_conn() as conn:
+    with connect() as conn:
         if reset:
             conn.execute("DELETE FROM readings")
+        # seeded zones are looked up by name; skip any the admin removed or renamed
         zones = {r["name"]: r["id"] for r in conn.execute("SELECT id, name FROM zones")}
         end = datetime.now().replace(minute=0, second=0, microsecond=0)
         start = end - timedelta(days=days)
@@ -33,6 +34,8 @@ def seed(days: int = 30, reset: bool = True) -> int:
         t = start
         while t <= end:
             for name, prof in PROFILE.items():
+                if name not in zones:
+                    continue
                 base = prof.get(t.hour, 0)
                 weekend = t.weekday() >= 5
                 if name == "Laundry" and not weekend:
@@ -51,9 +54,9 @@ def seed(days: int = 30, reset: bool = True) -> int:
                     litres += random.uniform(90, 130)
 
                 if litres > 0.05:
-                    rows.append((zones[name], t.isoformat(timespec="seconds"), round(litres, 2)))
+                    rows.append((zones[name], t.isoformat(timespec="seconds"), round(litres, 2), "demo"))
             t += timedelta(hours=1)
-        conn.executemany("INSERT INTO readings(zone_id, ts, liters) VALUES (?,?,?)", rows)
+        conn.executemany("INSERT INTO readings(zone_id, ts, liters, source) VALUES (?,?,?,?)", rows)
         return len(rows)
 
 

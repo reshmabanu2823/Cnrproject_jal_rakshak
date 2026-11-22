@@ -1,6 +1,11 @@
 const $ = (id) => document.getElementById(id);
-const api = async (path, opts) => {
-  const res = await fetch("/api" + path, opts);
+// If the server sets JALRAKSHAK_ADMIN_KEY, store it once in the browser console:
+//   localStorage.setItem("jr_api_key", "<key>")
+const apiKey = () => { try { return localStorage.getItem("jr_api_key"); } catch { return null; } };
+const api = async (path, opts = {}) => {
+  const key = apiKey();
+  const headers = { ...(opts.headers || {}), ...(key ? { "X-API-Key": key } : {}) };
+  const res = await fetch("/api" + path, { ...opts, headers });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
   return res.json();
 };
